@@ -15,7 +15,7 @@ from collections import defaultdict
 
 def main(argv):
 
-    o365_dir = os.path.join('.', 'data', 'object365')
+    o365_dir = os.path.join('.', 'data', 'objects365')
     parser = argparse.ArgumentParser()
     parser.add_argument('--json_path', default=o365_dir + '/objects365_Tiny_val.json')
     parser.add_argument('--image_path', default=o365_dir + '/val')
