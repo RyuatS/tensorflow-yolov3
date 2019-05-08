@@ -14,6 +14,7 @@
 import sys
 import argparse
 import numpy as np
+import os
 import tensorflow as tf
 
 def main(argv):
@@ -37,6 +38,9 @@ def main(argv):
     images_num = len(image_paths)
     print(">> Processing %d images" %images_num)
 
+    if not os.path.exists(os.path.dirname(flags.tfrecord_path_prefix)):
+        os.makedirs(flags.tfrecord_path_prefix)
+
     tfrecord_file = flags.tfrecord_path_prefix+".tfrecords"
     with tf.python_io.TFRecordWriter(tfrecord_file) as record_writer:
         for i in range(images_num):
@@ -56,5 +60,3 @@ def main(argv):
 
 
 if __name__ == "__main__":main(sys.argv[1:])
-
-

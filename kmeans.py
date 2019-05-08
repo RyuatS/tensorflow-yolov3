@@ -6,6 +6,7 @@
 #   Editor      : VIM
 #   File name   : kmeans.py
 #   Author      : YunYang1994
+#   Second Author : RyuatS
 #   Created date: 2019-01-25 11:08:15
 #   Description :
 #
@@ -16,7 +17,20 @@ import argparse
 import numpy as np
 import seaborn as sns
 import matplotlib.pyplot as plt
+import tensorflow as tf
 current_palette = list(sns.xkcd_rgb.values())
+
+FLAGS = tf.app.flags.FLAGS
+
+tf.app.flags.DEFINE_string('dataset_txt',
+                           './data/objects365/val.txt',
+                           'dataset text file path')
+tf.app.flags.DEFINE_string('anchors_txt',
+                           './data/objects365/o365_anchors.txt',
+                           'output anchor text')
+tf.app.flags.DEFINE_integer('cluster_num',
+                            9,
+                            'a number of k-means clusters')
 
 def iou(box, clusters):
     """
@@ -115,26 +129,24 @@ def plot_cluster_result(clusters,nearest_clusters,WithinClusterSumDist,wh,k):
     plt.savefig("./kmeans.jpg")
     plt.show()
 
-if __name__ == '__main__':
-    parser = argparse.ArgumentParser()
-    parser.add_argument("--dataset_txt", type=str, default="./raccoon_dataset/train.txt")
-    parser.add_argument("--anchors_txt", type=str, default="./data/raccoon_anchors.txt")
-    parser.add_argument("--cluster_num", type=int, default=9)
-    args = parser.parse_args()
-    anno_result = parse_anno(args.dataset_txt)
-    clusters, nearest_clusters, distances = kmeans(anno_result, args.cluster_num)
+
+def main(unused):
+    anno_result = parse_anno(FLAGS.dataset_txt)
+    clusters, nearest_clusters, distances = kmeans(anno_result, FLAGS.cluster_num)
 
     # sorted by area
     area = clusters[:, 0] * clusters[:, 1]
     indice = np.argsort(area)
     clusters = clusters[indice]
-    with open(args.anchors_txt, "w") as f:
-        for i in range(args.cluster_num):
+    with open(FLAGS.anchors_txt, "w") as f:
+        for i in range(FLAGS.cluster_num):
             width, height = clusters[i]
             f.writelines(str(width) + " " + str(height) + " ")
 
     WithinClusterMeanDist = np.mean(distances[np.arange(distances.shape[0]),nearest_clusters])
-    plot_cluster_result(clusters, nearest_clusters, 1-WithinClusterMeanDist, anno_result, args.cluster_num)
+    plot_cluster_result(clusters, nearest_clusters, 1-WithinClusterMeanDist, anno_result, FLAGS.cluster_num)
 
 
 
+if __name__ == '__main__':
+    tf.app.run()

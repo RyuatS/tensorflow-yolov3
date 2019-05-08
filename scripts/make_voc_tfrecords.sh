@@ -2,12 +2,12 @@
 
 #================================================================
 #   Copyright (C) 2019 * Ltd. All rights reserved.
-#   
-#   Editor      : VIM 
+#
+#   Editor      : VIM
 #   File name   : make_voc_tfrecords.sh
 #   Author      : YunYang1994
 #   Created date: 2019-01-21 11:40:10
-#   Description : 
+#   Description :
 #
 #================================================================
 

@@ -12,6 +12,8 @@ import sys
 import argparse
 import json
 from collections import defaultdict
+import matplotlib.pyplot as plt
+import cv2
 
 def main(argv):
 
@@ -31,7 +33,12 @@ def main(argv):
 
         for annotation in annotations:
             image_id = annotation['image_id']
-            single_image_path = os.path.join(image_folder_path, '%012d.jpg' %image_id)
+
+            if 'val' in flags.json_path:
+                single_image_path = os.path.join(image_folder_path, 'obj365_val_%012d.jpg' %image_id)
+            elif 'train' in flags.json_path:
+                single_image_path = os.path.join(image_folder_path, 'obj365_train_%012d.jpg' %image_id)
+
             category_id = annotation['category_id']
 
             x_min, y_min, width, height = annotation['bbox']
