@@ -146,8 +146,8 @@ def main(argv):
             print("=> STEP %10d [VALID]:\trecall:%7.4f \tprecision:%7.4f" %(step+1, test_rec_value,  test_prec_value))
             print("\n=======================> evaluation result <================================\n")
 
-        writer_test.add_summary(run_items[0], global_step=step)
-        writer_test.flush() # Flushes the event file to disk
+        writer_val.add_summary(run_items[0], global_step=step)
+        writer_val.flush() # Flushes the event file to disk
 
 
 if __name__ == '__main__':

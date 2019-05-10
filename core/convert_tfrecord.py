@@ -23,9 +23,21 @@ def main(argv):
     parser.add_argument("--tfrecord_path_prefix", default='./data/train_data/quick_train_data/tfrecords/quick_train_data')
     flags = parser.parse_args()
 
+    if os.path.exists(flags.tfrecord_path_prefix + '.tfrecords'):
+        print('{} already exists'.format(flags.tfrecord_path_prefix + '.tfrecords'))
+        exit()
+
+
     dataset = {}
+    f = open(flags.dataset_txt, 'r')
+    num_lines = len(f.readlines())
+    f.close()
     with open(flags.dataset_txt,'r') as f:
-        for line in f.readlines():
+        for i, line in enumerate(f.readlines(), start=1):
+            sys.stdout.write('\rreading image and bbox from {}. done {}/{}'.format(flags.dataset_txt,
+                                                                                    i,
+                                                                                    num_lines))
+            sys.stdout.flush()
             example = line.split(' ')
             image_path = example[0]
             boxes_num = len(example[1:]) // 5
@@ -36,7 +48,7 @@ def main(argv):
 
     image_paths = list(dataset.keys())
     images_num = len(image_paths)
-    print(">> Processing %d images" %images_num)
+    print("\n>> Processing %d images" %images_num)
 
     if not os.path.exists(os.path.dirname(flags.tfrecord_path_prefix)):
         os.makedirs(flags.tfrecord_path_prefix)
@@ -44,6 +56,8 @@ def main(argv):
     tfrecord_file = flags.tfrecord_path_prefix+".tfrecords"
     with tf.python_io.TFRecordWriter(tfrecord_file) as record_writer:
         for i in range(images_num):
+            sys.stdout.write('\r>>createing tfrecord. done {}/{}'.format(i+1, images_num))
+            sys.stdout.flush()
             image = tf.gfile.FastGFile(image_paths[i], 'rb').read()
             boxes = dataset[image_paths[i]]
             boxes = boxes.tostring()
@@ -56,7 +70,7 @@ def main(argv):
             ))
 
             record_writer.write(example.SerializeToString())
-        print(">> Saving %d images in %s" %(images_num, tfrecord_file))
+        print("\n>> Saving %d images in %s" %(images_num, tfrecord_file))
 
 
 if __name__ == "__main__":main(sys.argv[1:])

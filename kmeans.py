@@ -17,6 +17,7 @@ import argparse
 import numpy as np
 import seaborn as sns
 import matplotlib.pyplot as plt
+import sys
 import tensorflow as tf
 current_palette = list(sns.xkcd_rgb.values())
 
@@ -93,10 +94,17 @@ def kmeans(boxes, k, dist=np.median,seed=1):
 
 def parse_anno(annotation_path):
     anno = open(annotation_path, 'r')
+    num_anno = len(anno.readlines())
+    anno.close()
+
+    anno = open(annotation_path, 'r')
     result = []
-    for line in anno:
+    for j, line in enumerate(anno, start=1):
+        sys.stdout.write('\rparse annotation done {}/{}'.format(j, num_anno))
+        sys.stdout.flush()
         s = line.strip().split(' ')
-        image = cv2.imread(s[0])
+        img_path = s[0]
+        image = cv2.imread(img_path)
         image_h, image_w = image.shape[:2]
         s = s[1:]
         box_cnt = len(s) // 5
@@ -104,8 +112,15 @@ def parse_anno(annotation_path):
             x_min, y_min, x_max, y_max = float(s[i*5+0]), float(s[i*5+1]), float(s[i*5+2]), float(s[i*5+3])
             width  = (x_max - x_min) / image_w
             height = (y_max - y_min) / image_h
-            result.append([width, height])
+            if not(width <= 0 or height <= 0):
+                result.append([width, height])
+
+        if j >= 100000:
+            sys.stdout.write('\n')
+            break
+
     result = np.asarray(result)
+    anno.close()
     return result
 
 
@@ -131,6 +146,7 @@ def plot_cluster_result(clusters,nearest_clusters,WithinClusterSumDist,wh,k):
 
 
 def main(unused):
+    print('do kmeans algorithm')
     anno_result = parse_anno(FLAGS.dataset_txt)
     clusters, nearest_clusters, distances = kmeans(anno_result, FLAGS.cluster_num)
 

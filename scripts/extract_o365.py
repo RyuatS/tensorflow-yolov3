@@ -25,6 +25,11 @@ def main(argv):
     flags = parser.parse_args()
 
     dataset = defaultdict(list)
+
+    if os.path.exists(flags.dataset_info_path):
+        print('{} already exist'.format(flags.dataset_info_path))
+        exit()
+
     with open(os.path.realpath(flags.dataset_info_path), 'w') as f:
         labels = json.load(open(flags.json_path, encoding='utf-8'))
         annotations = labels['annotations']
