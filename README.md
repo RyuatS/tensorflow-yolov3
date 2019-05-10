@@ -29,49 +29,14 @@ $ pip install -r ./docs/requirements.txt
 $sh make_tfrecord.sh
 ```
 
-6. Train. 以下のファイルを実行すれば訓練が開始される。もし、ハイパーパラメータを変更したい場合は、ファイル内の引数を変えることによって変更できる。
+6. Train. If you want to change the hyperparameters, you can do so by changing the arguments in the `train.sh` file.
 ```bashrc
 $sh train.sh
 ```
 
-7. Evaluate and Test. 訓練が終わると、dir`./checkpoints`にチェックポイントが作られる。これを、以下のコードで変換する`.pb`ファイルに変換する。
+7. Evaluate and Test. Once training is complete, checkpoints will be created on dir `./checkpoints`. Convert to `.pb` file which will be converted with the following code:
 ```bashrc
-$python convert_weight.py -cf <checkpoint_path> -nc 1 -ap ./data/objects365/o365_anchors.txt --freeze
-$python quick_test.py
+$python convert_weight.py -cf <checkpoint_path> -nc 365 -ap ./data/objects365/o365_anchors.txt --freeze
+$python test.py
 $python evaluate.py
-```
-
-```bashrc
-$ python convert_weight.py --convert --freeze
-```
-4. Then you will get some `.pb` files in the dir `./checkpoint`,  and run the demo script
-```bashrc
-$ python nms_demo.py
-$ python video_demo.py # if use camera, set video_path = 0
-```
-![image](./docs/images/611_result.jpg)
-## part 3. Train on your own dataset
-Three files are required as follows:
-
-- `dataset.txt`:
-
-```
-xxx/xxx.jpg 18.19 6.32 424.13 421.83 20 323.86 2.65 640.0 421.94 20
-xxx/xxx.jpg 55.38 132.63 519.84 380.4 16
-# image_path x_min y_min x_max y_max class_id  x_min y_min ... class_id
-```
-- `anchors.txt`
-
-```
-0.10,0.13, 0.16,0.30, 0.33,0.23, 0.40,0.61, 0.62,0.45, 0.69,0.59, 0.76,0.60,  0.86,0.68,  0.91,0.76
-```
-
-- `class.names`
-
-```
-person
-bicycle
-car
-...
-toothbrush
 ```

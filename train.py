@@ -141,9 +141,10 @@ def main(argv):
 
         run_items = sess.run([write_op, y_pred, y_true] + loss, feed_dict={is_training:False})
         if (step+1) % EVAL_INTERNAL == 0:
+            val_rec_value, val_prec_value = utils.evaluate(run_items[1], run_items[2])
             print("\n=======================> evaluation result <================================\n")
             print("=> STEP %10d [TRAIN]:\trecall:%7.4f \tprecision:%7.4f" %(step+1, train_rec_value, train_prec_value))
-            print("=> STEP %10d [VALID]:\trecall:%7.4f \tprecision:%7.4f" %(step+1, test_rec_value,  test_prec_value))
+            print("=> STEP %10d [VALID]:\trecall:%7.4f \tprecision:%7.4f" %(step+1, val_rec_value,  val_prec_value))
             print("\n=======================> evaluation result <================================\n")
 
         writer_val.add_summary(run_items[0], global_step=step)
