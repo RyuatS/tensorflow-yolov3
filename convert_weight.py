@@ -38,7 +38,7 @@ class parser(argparse.ArgumentParser):
         )
 
         self.add_argument(
-            "--anchors_path", "-ap", default="./data/coco_anchors.txt", type=str,
+            "--anchors_path", "-ap", default="./data/coco/coco_anchors.txt", type=str,
             help="[default: %(default)s] The path of anchors ...",
             metavar="<AP>",
         )
