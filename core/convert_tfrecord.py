@@ -40,9 +40,15 @@ def main(argv):
             sys.stdout.flush()
             example = line.split(' ')
             image_path = example[0]
+            if len(example[1:]) % 5 != 0:
+                print('Error')
+                print('img_path: '.format(image_path))
+                exit()
             boxes_num = len(example[1:]) // 5
             boxes = np.zeros([boxes_num, 5], dtype=np.float32)
             for i in range(boxes_num):
+                c = example[1+i*5+4]
+
                 boxes[i] = example[1+i*5:6+i*5]
             dataset[image_path] = boxes
 
