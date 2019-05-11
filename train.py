@@ -191,7 +191,7 @@ def main(argv):
         print('\nCatch keyboard interrupt.')
     finally:
         sess.run(global_step_op, feed_dict={global_step_holder: step})
-        save_path = saver.save(sess, save_path=checkpoint_path)
+        save_path = saver.save(sess, save_path=checkpoint_path, global_step=step)
         print('\nModel saved in path: %s' % save_path)
 
 if __name__ == '__main__':
