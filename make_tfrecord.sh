@@ -26,6 +26,6 @@ python core/convert_tfrecord.py --dataset_txt=data/objects365/val.txt \
 
 
 # get anchors size using k-means algorithm,
-python kmeans.py --dataset_txt=./data/objects365/train.txt \
-                 --anchors_txt=./data/objects365/o365_anchors.txt \
-                 --cluster_num=9
+# python kmeans.py --dataset_txt=./data/objects365/train.txt \
+#                  --anchors_txt=./data/objects365/o365_anchors.txt \
+#                  --cluster_num=9
