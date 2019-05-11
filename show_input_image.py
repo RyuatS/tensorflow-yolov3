@@ -58,7 +58,7 @@ def main(unused):
                                           int(float(boxes[i][1]))),
                                          (int(float(boxes[i][2])),
                                           int(float(boxes[i][3]))), (255, 0, 0), 1)
-            label = classes[boxes[i][4]-1]
+            label = classes[boxes[i][4]]
             image = cv2.putText(image, label, (int(float(boxes[i][0])), int(float(boxes[i][1]))),
                                 cv2.FONT_HERSHEY_SIMPLEX,  .6, (0, 255, 0), 2, 2)
 
