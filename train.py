@@ -10,6 +10,8 @@
 from core import utils, yolov3
 from core.dataset import dataset, Parser
 import tensorflow as tf
+import re
+import os
 
 FLAGS = tf.app.flags.FLAGS
 
@@ -29,6 +31,10 @@ tf.app.flags.DEFINE_string('train_tfrecord_path',
 tf.app.flags.DEFINE_string('val_tfrecord_path',
                            './data/objects365/tfrecord/val.tfrecords',
                            'validation tfrecord path')
+
+tf.app.flags.DEFINE_string('checkpoint_dir',
+			   './checkpoint',
+			   'checkpoint directory')
 
 # set hyper parameter
 tf.app.flags.DEFINE_integer('batch_size',
@@ -80,6 +86,7 @@ def main(argv):
     EVAL_INTERNAL    = FLAGS.eval_internal
     SAVE_INTERNAL    = FLAGS.save_internal
 
+
     train_tfrecord = FLAGS.train_tfrecord_path
     val_tfrecord = FLAGS.val_tfrecord_path
 
@@ -98,22 +105,25 @@ def main(argv):
         loss             = model.compute_loss(pred_feature_map, y_true)
         y_pred           = model.predict(pred_feature_map)
 
+    global_step  = tf.Variable(0, name='global_step')
+    global_step_holder = tf.placeholder(tf.int32)
+    global_step_op = global_step.assign(global_step_holder)
+
+    ######## summary ##########
     tf.summary.scalar('loss/coord_loss', loss[1])
     tf.summary.scalar('loss/sizes_loss', loss[2])
     tf.summary.scalar('loss/confs_loss', loss[3])
     tf.summary.scalar('loss/class_loss', loss[4])
-
-    global_step  = tf.Variable(0, trainable=False, collections=[tf.GraphKeys.LOCAL_VARIABLES])
     write_op     = tf.summary.merge_all()
-    writer_train = tf.summary.FileWriter('./data/train')
-    writer_val   = tf.summary.FileWriter('./data/val')
+    writer_train = tf.summary.FileWriter('./data/train', graph=sess.graph)
+    writer_val   = tf.summary.FileWriter('./data/val'  , graph=sess.graph)
+    ############################
 
-    saver_to_restore = tf.train.Saver(var_list=tf.contrib.framework.get_variables_to_restore(include=['yolov3/darknet-53']))
     update_vars      = tf.contrib.framework.get_variables_to_restore(include=['yolov3/yolo-v3'])
     learning_rate    = tf.train.exponential_decay(LR, global_step, decay_steps=DECAY_STEPS, decay_rate=DECAY_RATE, staircase=True)
-    optimizer = tf.train.AdamOptimizer(learning_rate)
+    optimizer        = tf.train.AdamOptimizer(learning_rate)
 
-    # set dependencies for BN ops
+    ######## set dependencies for BN ops ########
     update_ops = tf.get_collection(tf.GraphKeys.UPDATE_OPS)
     with tf.control_dependencies(update_ops):
         train_op = optimizer.minimize(loss[0], var_list=update_vars, global_step=global_step)
@@ -122,34 +132,67 @@ def main(argv):
         sess.run([tf.initialize_all_variables(), tf.initialize_local_variables()])
     else:
         sess.run([tf.global_variables_initializer(), tf.local_variables_initializer()])
-    saver_to_restore.restore(sess, './checkpoint/yolov3.ckpt')
+    #############################################
+
+
+    ######## get checkpoint state ########
+    checkpoint = tf.train.get_checkpoint_state(FLAGS.checkpoint_dir)
+    original_checkpoint_name = 'yolov3.ckpt'
+    if checkpoint:
+        # チェックポイントが存在すれば
+        if os.path.basename(checkpoint.model_checkpoint_path) == original_checkpoint_name:
+            # 事前学習のチェックポイントしか存在しない場合
+            saver_to_restore = tf.train.Saver(var_list=tf.contrib.framework.get_variables_to_restore(include=['yolov3/darknet-53']))
+        elif re.match(r'yolov3.ckpt-[0-9]+', os.path.basename(checkpoint.model_checkpoint_path)):
+            # 自分で何回か学習したチェックポイントが存在する場合
+            saver_to_restore = tf.train.Saver()
+        print('\n\n' + checkpoint.model_checkpoint_path)
+        print('variables were restored.')
+        saver_to_restore.restore(sess, checkpoint.model_checkpoint_path)
+    else:
+        # チェックポイントが存在しない
+        print('variables were initialized.')
+    checkpoint_path = FLAGS.checkpoint_dir + 'yolov3.ckpt'
+    ######################################
+
     saver = tf.train.Saver(max_to_keep=2)
+    step = sess.run(global_step)
+    try:
+        for _ in range(STEPS):
+            step += 1
+            run_items = sess.run([train_op, write_op, y_pred, y_true] + loss, feed_dict={is_training: True})
 
-    for step in range(STEPS):
-        run_items = sess.run([train_op, write_op, y_pred, y_true] + loss, feed_dict={is_training: True})
+            if step % EVAL_INTERNAL == 0:
+                train_rec_value, train_prec_value = utils.evaluate(run_items[2], run_items[3])
 
-        if (step+1) % EVAL_INTERNAL == 0:
-            train_rec_value, train_prec_value = utils.evaluate(run_items[2], run_items[3])
+            writer_train.add_summary(run_items[1], global_step=step)
+            writer_train.flush() # Flushes the event file to disk
 
-        writer_train.add_summary(run_items[1], global_step=step)
-        writer_train.flush() # Flushes the event file to disk
-        if (step+1) % SAVE_INTERNAL==0:
-            saver.save(sess, save_path='./checkpoint/yolov3.ckpt', global_step=step+1)
+            if step % SAVE_INTERNAL==0:
+                sess.run(global_step_op, feed_dict={global_step_holder: step})
+                save_path = saver.save(sess, save_path=checkpoint_path, global_step=step)
+                print('\nModel saved in path %s' % save_path)
 
-        print('=> STEP %10d [TRAIN]:\tloss_xy:%7.4f \tloss_wh:%7.4f \tloss_conf:%7.4f \tloss_class:%7.4f'
-            %(step+1, run_items[5], run_items[6], run_items[7], run_items[8]))
+            print('=> STEP %10d [TRAIN]:\tloss_xy:%7.4f \tloss_wh:%7.4f \tloss_conf:%7.4f \tloss_class:%7.4f'
+                %(step, run_items[5], run_items[6], run_items[7], run_items[8]))
 
-        run_items = sess.run([write_op, y_pred, y_true] + loss, feed_dict={is_training:False})
-        if (step+1) % EVAL_INTERNAL == 0:
-            val_rec_value, val_prec_value = utils.evaluate(run_items[1], run_items[2])
-            print("\n=======================> evaluation result <================================\n")
-            print("=> STEP %10d [TRAIN]:\trecall:%7.4f \tprecision:%7.4f" %(step+1, train_rec_value, train_prec_value))
-            print("=> STEP %10d [VALID]:\trecall:%7.4f \tprecision:%7.4f" %(step+1, val_rec_value,  val_prec_value))
-            print("\n=======================> evaluation result <================================\n")
+            run_items = sess.run([write_op, y_pred, y_true] + loss, feed_dict={is_training:False})
+            if step % EVAL_INTERNAL == 0:
+                val_rec_value, val_prec_value = utils.evaluate(run_items[1], run_items[2])
+                print("\n=======================> evaluation result <================================\n")
+                print("=> STEP %10d [TRAIN]:\trecall:%7.4f \tprecision:%7.4f" %(step, train_rec_value, train_prec_value))
+                print("=> STEP %10d [VALID]:\trecall:%7.4f \tprecision:%7.4f" %(step, val_rec_value,  val_prec_value))
+                print("\n=======================> evaluation result <================================\n")
 
-        writer_val.add_summary(run_items[0], global_step=step)
-        writer_val.flush() # Flushes the event file to disk
+            writer_val.add_summary(run_items[0], global_step=step)
+            writer_val.flush() # Flushes the event file to disk
 
+    except KeyboardInterrupt:
+        print('\nCatch keyboard interrupt.')
+    finally:
+        sess.run(global_step_op, feed_dict={global_step_holder: step})
+        save_path = saver.save(sess, save_path=checkpoint_path)
+        print('\nModel saved in path: %s' % save_path)
 
 if __name__ == '__main__':
     tf.app.run()

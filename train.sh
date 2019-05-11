@@ -11,6 +11,7 @@ python train.py --names_file='./data/objects365/objects365.names' \
                 --train_tfrecord_path='./data/objects365/tfrecord/train.tfrecords' \
                 --val_tfrecord_path='./data/objects365/tfrecord/val.tfrecords' \
                 --batch_size=16 \
+		--checkpoint_dir='./checkpoint/' \
                 --steps=2500 \
                 --lr=0.001 \
                 --decay_rate=0.9 \
